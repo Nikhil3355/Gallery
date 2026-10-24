@@ -28,7 +28,8 @@
     <header class="site-header">
         <a class="brand" href="./">My Gallery</a>
         <div class="header-actions">
-            <span class="status" id="connectionStatus">Not connected</span>
+            <span class="status" id="connectionStatus">Sign in required</span>
+            <button type="button" id="googleSignInButton" class="theme-toggle">Sign in with Google</button>
             <button type="button" id="themeToggle" class="theme-toggle" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
         </div>
     </header>
@@ -57,7 +58,7 @@
                 <div>
                     <p class="eyebrow">COLLECTION MANAGEMENT</p>
                     <h2 id="uploadTitle">Upload images</h2>
-                    <p class="upload-help">Choose an actress and select already-encrypted .enc files. Upload stays disabled until secure Google access is configured.</p>
+                    <p class="upload-help">Sign in with your Google account, choose an actress, and upload already-encrypted .enc files to your configured Drive folder. Files are stored with random filenames.</p>
                 </div>
                 <span class="upload-badge">PG02</span>
             </div>

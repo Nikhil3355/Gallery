@@ -16,6 +16,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const uploadMessage = document.getElementById("uploadMessage");
     const uploadProgressWrap = document.getElementById("uploadProgressWrap");
     const themeToggle = document.getElementById("themeToggle");
+    const googleSignInButton = document.getElementById("googleSignInButton");
+    const uploadSubmit = document.getElementById("uploadSubmit");
+    const uploadStatus = document.getElementById("uploadStatus");
+    const uploadPercent = document.getElementById("uploadPercent");
+    const uploadProgress = document.getElementById("uploadProgress");
     const pinScreen = document.getElementById("pinScreen");
     const pinForm = document.getElementById("pinForm");
     const pinInput = document.getElementById("pinInput");
@@ -143,6 +148,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!newActressFields) return;
         newActressFields.hidden = !newActressFields.hidden;
         toggleNewActress.textContent = newActressFields.hidden ? "Add new actress" : "Use existing actress";
+        if (uploadActress) uploadActress.required = newActressFields.hidden;
+        if (newActressName) newActressName.required = !newActressFields.hidden;
         if (!newActressFields.hidden) newActressName?.focus();
     });
 
@@ -153,7 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
             encryptedFiles.value = "";
             return;
         }
-        setUploadMessage(files.length ? `${files.length} encrypted file(s) selected. No files have been uploaded.` : "");
+        setUploadMessage(files.length ? `${files.length} encrypted file(s) selected.` : "");
     });
 
     clearUpload?.addEventListener("click", () => {
@@ -162,13 +169,43 @@ document.addEventListener("DOMContentLoaded", () => {
         setUploadMessage("");
     });
 
-    uploadForm?.addEventListener("submit", (event) => {
+    uploadForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
         const files = [...(encryptedFiles?.files || [])];
+        if (!window.GalleryAPI?.isSignedIn()) return setUploadMessage("Sign in with Google first using the button at the top of the page.", "error");
         if (!files.length) return setUploadMessage("Select one or more .enc files first.", "error");
-        if (!newActressFields?.hidden && !newActressName?.value.trim()) return setUploadMessage("Enter a name for the new actress, or choose an existing actress.", "error");
-        if (newActressFields?.hidden && !uploadActress?.value) return setUploadMessage("Choose an actress first.", "error");
-        setUploadMessage("Upload is not enabled yet. The current Google Apps Script deployment is restricted to 'Only myself'; files have NOT been uploaded. We need to connect Google sign-in securely first.", "error");
+        const isNew = newActressFields && !newActressFields.hidden;
+        if (isNew && !newActressName?.value.trim()) return setUploadMessage("Enter a name for the new actress.", "error");
+        if (!isNew && !uploadActress?.value) return setUploadMessage("Choose an actress first.", "error");
+        if (uploadProgressWrap) uploadProgressWrap.hidden = false;
+        if (uploadSubmit) uploadSubmit.disabled = true;
+        if (clearUpload) clearUpload.disabled = true;
+        try {
+            setUploadMessage("Starting upload. Keep this tab open until it finishes.");
+            const uploaded = await window.GalleryAPI.uploadEncryptedFiles(
+                files,
+                uploadActress?.value,
+                isNew ? newActressName.value.trim() : "",
+                (progress) => {
+                    if (uploadStatus) uploadStatus.textContent = `${progress.stage}: ${progress.fileName} (${progress.current}/${progress.total})`;
+                    if (uploadPercent) uploadPercent.textContent = `${progress.percent}%`;
+                    if (uploadProgress) uploadProgress.value = progress.percent;
+                }
+            );
+            setUploadMessage(`Success! ${uploaded.length} encrypted file(s) saved to Google Drive and registered in Google Sheets.`, "success");
+            if (uploadProgress) uploadProgress.value = 100;
+            if (uploadPercent) uploadPercent.textContent = "100%";
+            if (newActressName) newActressName.value = "";
+            if (encryptedFiles) encryptedFiles.value = "";
+            actresses = await window.GalleryAPI.getCatalogue();
+            renderActresses();
+        } catch (error) {
+            console.error("Gallery upload failed:", error);
+            setUploadMessage(error.message || "Upload failed. Check the browser console for details.", "error");
+        } finally {
+            if (uploadSubmit) uploadSubmit.disabled = false;
+            if (clearUpload) clearUpload.disabled = false;
+        }
     });
 
     if (pinInput && pinError) pinInput.addEventListener("input", () => {
@@ -181,23 +218,31 @@ document.addEventListener("DOMContentLoaded", () => {
         pinScreen.hidden = true; document.body.style.overflow = ""; pinInput.value = "";
     });
 
-    // Keep the existing backend URL in js/api.js. Catalogue fetch may still fail
-    // while Apps Script access/CORS is unresolved; fail visibly instead of pretending it connected.
-    if (window.PrivateGalleryAPI?.getCatalogue) {
-        window.PrivateGalleryAPI.getCatalogue().then((data) => {
-            const rows = Array.isArray(data) ? data : (data?.actresses || data?.Actresses || []);
-            actresses = rows.map((row) => ({
-                id: row.id || row.actressId || row.ActressID,
-                name: row.name || row.actressName || row.ActressName,
-                imageCount: row.imageCount || row.count || 0
-            })).filter((row) => row.name);
-            if (connectionStatus) connectionStatus.textContent = "Connected";
-            renderActresses();
-        }).catch((error) => {
-            if (connectionStatus) connectionStatus.textContent = "Not connected";
-            console.warn("Gallery catalogue could not load:", error.message);
-            renderActresses();
-        });
-    } else if (connectionStatus) connectionStatus.textContent = "Not connected";
+    async function refreshCatalogue() {
+        const rows = await window.GalleryAPI.getCatalogue();
+        actresses = rows.map(row => ({ id: row.id, name: row.name, imageCount: row.imageCount || 0 }));
+        renderActresses();
+    }
+
+    googleSignInButton?.addEventListener("click", async () => {
+        googleSignInButton.disabled = true;
+        try {
+            if (connectionStatus) connectionStatus.textContent = "Connecting…";
+            setUploadMessage("Opening Google sign-in…");
+            await window.GalleryAPI.signIn();
+            if (connectionStatus) connectionStatus.textContent = "Google connected";
+            googleSignInButton.textContent = "Google connected ✓";
+            await refreshCatalogue();
+            setUploadMessage("Google connected. Your catalogue is loaded and the uploader is ready.", "success");
+        } catch (error) {
+            console.error("Google connection failed:", error);
+            if (connectionStatus) connectionStatus.textContent = "Connection failed";
+            setUploadMessage(error.message || "Google sign-in failed. Check the browser console.", "error");
+        } finally {
+            googleSignInButton.disabled = false;
+        }
+    });
+
+    if (connectionStatus) connectionStatus.textContent = "Sign in required";
     renderActresses();
 });
