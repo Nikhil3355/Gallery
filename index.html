@@ -98,6 +98,26 @@
             </label>
         </section>
 
+        <div class="gallery-toolbar-extra" id="galleryToolbarExtra">
+            <label class="visually-hidden" for="sortSelect">Sort actresses</label>
+            <select id="sortSelect" aria-label="Sort actresses">
+                <option value="most">Most Images</option>
+                <option value="least">Least Images</option>
+                <option value="az">A–Z</option>
+                <option value="za">Z–A</option>
+                <option value="recent">Recently Added</option>
+            </select>
+            <span class="pager-info" id="sortHint">24 actress cards per page</span>
+        </div>
+        <section id="actressDetail" hidden>
+            <div class="detail-heading">
+                <button type="button" class="back-button" id="backToActresses">← All actresses</button>
+                <div><h2 id="detailActressName">Actress</h2><p class="detail-subtitle" id="detailActressCount"></p></div>
+            </div>
+            <div class="gallery-message" id="detailMessage" role="status">Select an actress to load photos.</div>
+            <div id="photoGrid" class="photo-grid"></div>
+            <nav id="photoPager" class="pager" aria-label="Photo pages"></nav>
+        </section>
         <nav class="alphabet" id="alphabet" aria-label="Filter alphabetically">
             <button class="letter active" data-letter="ALL" type="button">All</button>
             <button class="letter" data-letter="A" type="button">A</button>
@@ -144,9 +164,17 @@
                     <p>The gallery will populate after we connect your private catalogue.</p>
                 </div>
             </div>
+            <nav id="actressPager" class="pager" aria-label="Actress pages"></nav>
         </section>
       </section>
     </main>
+    <div id="imageViewer" class="image-viewer" role="dialog" aria-modal="true" aria-label="Image viewer" hidden>
+        <button type="button" class="viewer-close" id="viewerClose" aria-label="Close image viewer">✕</button>
+        <button type="button" class="viewer-nav viewer-prev" id="viewerPrev" aria-label="Previous image">‹</button>
+        <img id="viewerImage" alt="Selected gallery image">
+        <button type="button" class="viewer-nav viewer-next" id="viewerNext" aria-label="Next image">›</button>
+        <div class="viewer-caption" id="viewerCaption"></div>
+    </div>
 
     <footer class="site-footer">
         <span>My Gallery</span>

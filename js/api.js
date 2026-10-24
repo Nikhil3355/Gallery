@@ -20,6 +20,8 @@ const GalleryAPI = (() => {
   let accessToken = null;
   let tokenExpiresAt = 0;
   let authReady = false;
+  let imageRecordsCache = null;
+  let imageRecordsCacheAt = 0;
 
   function loadGoogleIdentity() {
     return new Promise((resolve, reject) => {
@@ -164,6 +166,7 @@ const GalleryAPI = (() => {
     ]);
     const aId = colIndex(actressTable.headers, ["ActressID"]);
     const aName = colIndex(actressTable.headers, ["ActressName", "Name"]);
+    const aDate = colIndex(actressTable.headers, ["DateAdded"]);
     const iActressId = colIndex(imageTable.headers, ["ActressID"]);
     if (aName < 0) throw new Error("ActressName column was not found in the Actresses sheet.");
     const counts = new Map();
@@ -174,8 +177,42 @@ const GalleryAPI = (() => {
     return actressTable.rows.map(row => {
       const name = String(row[aName] || "").trim();
       const id = (aId >= 0 ? String(row[aId] || "") : "") || name;
-      return { id, name, imageCount: counts.get(id) || 0 };
+      return { id, name, imageCount: counts.get(id) || 0, dateAdded: aDate >= 0 ? String(row[aDate] || "") : "" };
     }).filter(row => row.name).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async function getImagesForActress(actressId) {
+    if (!imageRecordsCache || Date.now() - imageRecordsCacheAt > 60000) {
+      imageRecordsCache = await getSheetTable(CONFIG.imagesSheet);
+      imageRecordsCacheAt = Date.now();
+    }
+    const table = imageRecordsCache;
+    const idx = {
+      imageId: colIndex(table.headers, ["ImageID"]),
+      actressId: colIndex(table.headers, ["ActressID"]),
+      driveFileId: colIndex(table.headers, ["DriveFileID"]),
+      category: colIndex(table.headers, ["Category"]),
+      fileSize: colIndex(table.headers, ["FileSize"]),
+      encryptionVersion: colIndex(table.headers, ["EncryptionVersion"]),
+      dateAdded: colIndex(table.headers, ["DateAdded"])
+    };
+    if (idx.actressId < 0 || idx.driveFileId < 0) throw new Error("Images sheet needs ActressID and DriveFileID columns.");
+    return table.rows.map((row, n) => ({
+      id: idx.imageId >= 0 ? String(row[idx.imageId] || `${actressId}-${n}`) : `${actressId}-${n}`,
+      actressId: String(row[idx.actressId] || ""),
+      driveFileId: String(row[idx.driveFileId] || ""),
+      category: idx.category >= 0 ? String(row[idx.category] || "Photo") : "Photo",
+      fileSize: idx.fileSize >= 0 ? Number(row[idx.fileSize] || 0) : 0,
+      encryptionVersion: idx.encryptionVersion >= 0 ? String(row[idx.encryptionVersion] || "PG02") : "PG02",
+      dateAdded: idx.dateAdded >= 0 ? String(row[idx.dateAdded] || "") : ""
+    })).filter(item => item.actressId === String(actressId) && item.driveFileId && item.encryptionVersion === "PG02")
+      .sort((a,b) => String(a.dateAdded).localeCompare(String(b.dateAdded)));
+  }
+
+  async function getEncryptedFile(driveFileId) {
+    if (!driveFileId) throw new Error("Missing Drive file ID.");
+    const response = await googleFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(driveFileId)}?alt=media`);
+    return await response.arrayBuffer();
   }
 
   async function ensureActress(name) {
@@ -223,6 +260,7 @@ const GalleryAPI = (() => {
     const driveFile = await finalResponse.json();
 
     try {
+      imageRecordsCache = null;
       const values = {
         imageid: uuid(),
         actressid: actress.id,
@@ -262,7 +300,7 @@ const GalleryAPI = (() => {
     return completed;
   }
 
-  return { config: CONFIG, signIn, signOut, getCatalogue, uploadEncryptedFiles, isSignedIn: () => authReady && !!accessToken && Date.now() < tokenExpiresAt };
+  return { config: CONFIG, signIn, signOut, getCatalogue, getImagesForActress, getEncryptedFile, uploadEncryptedFiles, isSignedIn: () => authReady && !!accessToken && Date.now() < tokenExpiresAt };
 })();
 
 window.GalleryAPI = GalleryAPI;
