@@ -1,7 +1,16 @@
 "use strict";
 
-const PrivateGalleryAPI = {
+const GalleryAPI = {
   backendUrl: "https://script.google.com/macros/s/AKfycbwzY_feaULi9thCa033fn_qmV3k7vHv-FPbPv-yvlDdNZzOg0_SUx3rkB8RFCHp092rpg/exec",
+
+  // Upload intentionally remains disabled until a private, authenticated
+  // backend endpoint is implemented. Do not upload through the current
+  // Apps Script deployment while it is restricted to "Only myself".
+  async uploadEncryptedFiles() {
+    throw new Error(
+      "Secure upload is not configured yet. The interface is ready, but the private backend must be configured before files can be uploaded safely."
+    );
+  },
 
   async getCatalogue() {
     if (!this.backendUrl) {
@@ -36,4 +45,5 @@ const PrivateGalleryAPI = {
   }
 };
 
-window.PrivateGalleryAPI = PrivateGalleryAPI;
+window.GalleryAPI = GalleryAPI;
+window.PrivateGalleryAPI = GalleryAPI;

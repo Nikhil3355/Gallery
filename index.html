@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>PrivateGallery</title>
+    <title>My Gallery</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 
@@ -26,11 +26,20 @@
         </div>
     </section>
     <header class="site-header">
-        <a class="brand" href="./">PrivateGallery</a>
-        <span class="status" id="connectionStatus">Not connected</span>
+        <a class="brand" href="./">My Gallery</a>
+        <div class="header-actions">
+            <span class="status" id="connectionStatus">Not connected</span>
+            <button type="button" id="themeToggle" class="theme-toggle" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
+        </div>
     </header>
 
+    <nav class="main-tabs" aria-label="Main sections">
+        <button type="button" class="main-tab active" data-tab="gallery" aria-selected="true">Main Gallery</button>
+        <button type="button" class="main-tab" data-tab="uploader" aria-selected="false">Uploader</button>
+    </nav>
+
     <main class="container">
+      <section id="galleryTab" class="tab-panel active" data-panel="gallery">
         <section class="welcome">
             <p class="eyebrow">YOUR PERSONAL COLLECTION</p>
             <h1>Your gallery.<br><span>Your private space.</span></h1>
@@ -40,6 +49,47 @@
             </p>
         </section>
 
+      </section>
+
+      <section id="uploaderTab" class="tab-panel" data-panel="uploader" hidden>
+        <section class="upload-panel" aria-labelledby="uploadTitle">
+            <div class="upload-panel-heading">
+                <div>
+                    <p class="eyebrow">COLLECTION MANAGEMENT</p>
+                    <h2 id="uploadTitle">Upload images</h2>
+                    <p class="upload-help">Choose an actress and select already-encrypted .enc files. Upload stays disabled until secure Google access is configured.</p>
+                </div>
+                <span class="upload-badge">PG02</span>
+            </div>
+            <form id="uploadForm" class="upload-form">
+                <label for="uploadActress">Actress</label>
+                <div class="upload-actress-row">
+                    <select id="uploadActress" name="actressId" required>
+                        <option value="">Load catalogue to choose an actress</option>
+                    </select>
+                    <button type="button" id="toggleNewActress" class="secondary-button">Add new actress</button>
+                </div>
+                <div id="newActressFields" class="new-actress-fields" hidden>
+                    <label for="newActressName">New actress name</label>
+                    <input id="newActressName" name="newActressName" type="text" maxlength="120" autocomplete="off" placeholder="Enter actress name">
+                </div>
+                <label for="encryptedFiles">Encrypted files (.enc)</label>
+                <input id="encryptedFiles" name="encryptedFiles" type="file" accept=".enc,application/octet-stream" multiple required>
+                <p class="field-help">Select encrypted files only. For large collections, uploads must be batched and resumable.</p>
+                <div class="upload-actions">
+                    <button type="submit" id="uploadSubmit" class="primary-button">Upload selected files</button>
+                    <button type="button" id="clearUpload" class="secondary-button">Clear selection</button>
+                </div>
+                <div id="uploadProgressWrap" class="upload-progress-wrap" hidden>
+                    <div class="upload-progress-meta"><span id="uploadStatus">Not started</span><span id="uploadPercent">0%</span></div>
+                    <progress id="uploadProgress" max="100" value="0"></progress>
+                </div>
+                <p id="uploadMessage" class="upload-message" role="status" aria-live="polite"></p>
+            </form>
+        </section>
+      </section>
+
+      <section id="galleryControls" class="tab-panel active" data-panel="gallery">
         <section class="toolbar" aria-label="Gallery controls">
             <label class="search-box">
                 <span aria-hidden="true">⌕</span>
@@ -94,11 +144,12 @@
                 </div>
             </div>
         </section>
+      </section>
     </main>
 
     <footer class="site-footer">
-        <span>PrivateGallery</span>
-        <span>Personal collection · Private access</span>
+        <span>My Gallery</span>
+        <span>Personal collection</span>
     </footer>
 
     <script src="js/api.js" defer></script>
