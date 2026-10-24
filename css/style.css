@@ -1,0 +1,309 @@
+:root {
+    color-scheme: dark;
+    --background: #0b0b0e;
+    --surface: #141419;
+    --surface-hover: #1d1d25;
+    --border: #292932;
+    --text: #f5f5f7;
+    --muted: #92929f;
+    --accent: #c7a4ff;
+    --accent-soft: rgba(199, 164, 255, 0.12);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    line-height: 1.6;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.site-header {
+    min-height: 76px;
+    padding: 18px 6%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(11, 11, 14, 0.95);
+}
+
+.brand {
+    font-size: 1.15rem;
+    font-weight: 750;
+    letter-spacing: -0.04em;
+}
+
+.brand::before {
+    content: "◆";
+    color: var(--accent);
+    margin-right: 10px;
+    font-size: 0.85rem;
+}
+
+.status {
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.container {
+    width: min(1120px, 88%);
+    margin: 0 auto;
+}
+
+.welcome {
+    padding: 78px 0 48px;
+}
+
+.eyebrow {
+    margin: 0 0 12px;
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 750;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+}
+
+.welcome h1 {
+    margin: 0;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    line-height: 1.08;
+    letter-spacing: -0.065em;
+}
+
+.welcome h1 span {
+    color: var(--muted);
+}
+
+.intro {
+    max-width: 520px;
+    margin: 22px 0 0;
+    color: var(--muted);
+    font-size: 1rem;
+}
+
+.toolbar {
+    margin: 12px 0 22px;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 52px;
+    padding: 0 17px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.search-box > span {
+    color: var(--muted);
+    font-size: 1.5rem;
+}
+
+.search-box input {
+    width: 100%;
+    min-width: 0;
+    padding: 13px 0;
+    border: 0;
+    outline: 0;
+    color: var(--text);
+    background: transparent;
+}
+
+.search-box:focus-within {
+    border-color: var(--accent);
+}
+
+.alphabet {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding: 18px 0 32px;
+    border-bottom: 1px solid var(--border);
+}
+
+.letter {
+    min-width: 38px;
+    min-height: 38px;
+    padding: 7px 10px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--muted);
+}
+
+.letter:hover {
+    color: var(--text);
+    background: var(--surface-hover);
+}
+
+.letter.active {
+    color: var(--text);
+    border-color: rgba(199, 164, 255, 0.3);
+    background: var(--accent-soft);
+}
+
+.collection {
+    padding: 38px 0 70px;
+}
+
+.section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 16px;
+    margin-bottom: 25px;
+}
+
+.section-heading h2 {
+    margin: 0;
+    font-size: 1.9rem;
+    letter-spacing: -0.045em;
+}
+
+.section-heading > span {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.actress-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 18px;
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    padding: 58px 20px;
+    text-align: center;
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 16px;
+}
+
+.empty-icon {
+    color: var(--accent);
+    font-size: 2.2rem;
+}
+
+.empty-state h3 {
+    margin: 12px 0 6px;
+    font-size: 1.1rem;
+}
+
+.empty-state p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.site-footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 24px 6%;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+@media (max-width: 600px) {
+    .site-header {
+        min-height: 64px;
+        padding: 14px 5%;
+    }
+
+    .container {
+        width: 90%;
+    }
+
+    .welcome {
+        padding-top: 55px;
+    }
+
+    .alphabet {
+        gap: 5px;
+    }
+
+    .letter {
+        min-width: 35px;
+        min-height: 40px;
+        padding: 6px 8px;
+    }
+
+    .actress-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .site-footer {
+        padding: 22px 5%;
+    }
+}
+
+.actress-card {
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.actress-preview {
+    display: grid;
+    min-height: 145px;
+    place-items: center;
+    background: linear-gradient(135deg, #25212f, #17171d);
+    color: var(--accent);
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.actress-details {
+    padding: 14px;
+}
+
+.actress-details h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    overflow-wrap: anywhere;
+}
+
+.actress-details p {
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.pin-screen { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; padding: 20px; background: #0b0b0e; } .pin-card { width: min(100%, 390px); padding: 36px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); text-align: center; } .pin-logo { margin-bottom: 24px; color: var(--accent); font-size: 2rem; } .pin-card h1 { margin: 0; font-size: 2rem; letter-spacing: -0.05em; } .pin-description { margin: 12px 0 28px; color: var(--muted); font-size: 0.9rem; } .pin-card form { display: grid; gap: 12px; text-align: left; } .pin-card label { font-size: 0.85rem; font-weight: 600; } .pin-card input { width: 100%; min-height: 54px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; outline: none; background: #0b0b0e; color: var(--text); font-size: 1.35rem; letter-spacing: 0.35em; text-align: center; } .pin-card input:focus { border-color: var(--accent); } .pin-submit { min-height: 48px; margin-top: 8px; border: 0; border-radius: 10px; background: var(--accent); color: #17121f; font-weight: 750; } .pin-submit:hover { filter: brightness(1.08); } .pin-error { min-height: 20px; margin: 0; color: #ff8585; font-size: 0.82rem; } .pin-note { margin: 26px 0 0; color: var(--muted); font-size: 0.75rem; } @media (max-width: 420px) { .pin-card { padding: 26px 20px; } }
+
+#pinScreen[hidden] {
+    display: none !important;
+}

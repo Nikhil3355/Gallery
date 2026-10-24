@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>PrivateGallery</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <section id="pinScreen" class="pin-screen">
+        <div class="pin-card">
+            <div class="pin-logo">◆</div>
+            <p class="eyebrow">PERSONAL COLLECTION</p>
+            <h1>Welcome back.</h1>
+            <p class="pin-description">Enter your 6-digit PIN to continue.</p>
+            <form id="pinForm"> <label for="pinInput">Your PIN</label> <input id="pinInput" type="password"
+                    inputmode="numeric" pattern="[0-9]{6}" maxlength="6" minlength="6" autocomplete="off"
+                    placeholder="••••••" required>
+                <p id="pinError" class="pin-error" role="alert"></p> <button type="submit" class="pin-submit">Unlock
+                    gallery</button>
+            </form>
+            <p class="pin-note">Your personal gallery</p>
+        </div>
+    </section>
+    <header class="site-header">
+        <a class="brand" href="./">PrivateGallery</a>
+        <span class="status" id="connectionStatus">Not connected</span>
+    </header>
+
+    <main class="container">
+        <section class="welcome">
+            <p class="eyebrow">YOUR PERSONAL COLLECTION</p>
+            <h1>Your gallery.<br><span>Your private space.</span></h1>
+            <p class="intro">
+                A personal collection, organised alphabetically
+                and designed for easy browsing.
+            </p>
+        </section>
+
+        <section class="toolbar" aria-label="Gallery controls">
+            <label class="search-box">
+                <span aria-hidden="true">⌕</span>
+                <input id="searchInput" type="search" placeholder="Search actresses..." autocomplete="off">
+            </label>
+        </section>
+
+        <nav class="alphabet" id="alphabet" aria-label="Filter alphabetically">
+            <button class="letter active" data-letter="ALL" type="button">All</button>
+            <button class="letter" data-letter="A" type="button">A</button>
+            <button class="letter" data-letter="B" type="button">B</button>
+            <button class="letter" data-letter="C" type="button">C</button>
+            <button class="letter" data-letter="D" type="button">D</button>
+            <button class="letter" data-letter="E" type="button">E</button>
+            <button class="letter" data-letter="F" type="button">F</button>
+            <button class="letter" data-letter="G" type="button">G</button>
+            <button class="letter" data-letter="H" type="button">H</button>
+            <button class="letter" data-letter="I" type="button">I</button>
+            <button class="letter" data-letter="J" type="button">J</button>
+            <button class="letter" data-letter="K" type="button">K</button>
+            <button class="letter" data-letter="L" type="button">L</button>
+            <button class="letter" data-letter="M" type="button">M</button>
+            <button class="letter" data-letter="N" type="button">N</button>
+            <button class="letter" data-letter="O" type="button">O</button>
+            <button class="letter" data-letter="P" type="button">P</button>
+            <button class="letter" data-letter="Q" type="button">Q</button>
+            <button class="letter" data-letter="R" type="button">R</button>
+            <button class="letter" data-letter="S" type="button">S</button>
+            <button class="letter" data-letter="T" type="button">T</button>
+            <button class="letter" data-letter="U" type="button">U</button>
+            <button class="letter" data-letter="V" type="button">V</button>
+            <button class="letter" data-letter="W" type="button">W</button>
+            <button class="letter" data-letter="X" type="button">X</button>
+            <button class="letter" data-letter="Y" type="button">Y</button>
+            <button class="letter" data-letter="Z" type="button">Z</button>
+        </nav>
+
+        <section class="collection">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">THE COLLECTION</p>
+                    <h2>Actresses</h2>
+                </div>
+                <span id="resultCount">0 entries</span>
+            </div>
+
+            <div id="actressGrid" class="actress-grid">
+                <div class="empty-state">
+                    <span class="empty-icon" aria-hidden="true">◇</span>
+                    <h3>Your collection will appear here</h3>
+                    <p>The gallery will populate after we connect your private catalogue.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <span>PrivateGallery</span>
+        <span>Personal collection · Private access</span>
+    </footer>
+
+    <script src="js/api.js" defer></script>
+    <script src="js/app.js" defer></script>
+</body>
+
+</html>
