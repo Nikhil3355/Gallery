@@ -389,3 +389,145 @@ a {
 @media(max-width:900px){.photo-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:620px){.photo-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.gallery-toolbar-extra{align-items:stretch}.gallery-toolbar-extra select{flex:1}.image-viewer{padding:60px 44px 38px}.viewer-prev{left:3px}.viewer-next{right:3px}.viewer-nav{padding:9px 11px}}
 @media(max-width:420px){.photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pager{gap:5px}.pager button{padding:8px 10px}}
+
+/* ===== Gallery visual polish: consistent covers, refined controls, responsive layout ===== */
+:root {
+  --background: #090b12;
+  --surface: #111521;
+  --surface-hover: #191f2e;
+  --border: #272f43;
+  --text: #f4f5fb;
+  --muted: #9ba5bb;
+  --accent: #a78bfa;
+  --accent-soft: rgba(167, 139, 250, .14);
+  --panel: #111521;
+  --line: #272f43;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #f4f5fb;
+  --surface: #ffffff;
+  --surface-hover: #eef0fa;
+  --border: #e0e3ef;
+  --text: #20243a;
+  --muted: #6d748b;
+  --accent: #7252d5;
+  --accent-soft: rgba(114, 82, 213, .10);
+  --panel: #ffffff;
+  --line: #e0e3ef;
+}
+body {
+  background: radial-gradient(ellipse at 12% 0%, rgba(124, 91, 220, .10), transparent 38%), var(--background);
+  transition: background-color .25s ease, color .25s ease;
+}
+.site-header {
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  box-shadow: 0 1px 0 var(--border);
+}
+.brand { letter-spacing: -.045em; }
+.container { width: min(1240px, 92%); }
+.welcome { padding-top: clamp(38px, 6vw, 76px); }
+.welcome h1 { text-wrap: balance; }
+input, select, textarea {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+button, .letter, .main-tab, .theme-toggle, .primary-button, .secondary-button,
+.gallery-toolbar-extra button, .gallery-toolbar-extra select, .pager button,
+.back-button, .viewer-close, .viewer-nav, .pin-submit {
+  border-radius: 999px;
+  transition: transform .18s ease, background-color .18s ease, border-color .18s ease,
+    box-shadow .18s ease, filter .18s ease;
+}
+button:hover:not(:disabled), .letter:hover, .main-tab:hover, .theme-toggle:hover,
+.gallery-toolbar-extra button:hover, .pager button:hover:not(:disabled),
+.back-button:hover, .viewer-close:hover, .viewer-nav:hover, .primary-button:hover,
+.secondary-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+}
+button:active:not(:disabled) { transform: translateY(0) scale(.985); }
+.actress-grid {
+  grid-template-columns: repeat( auto-fill, minmax(min(100%, 205px), 1fr) );
+  gap: clamp(12px, 1.8vw, 20px);
+}
+.actress-card {
+  min-width: 0;
+  border-radius: 18px;
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: 0 5px 20px rgba(0,0,0,.08);
+  transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+.actress-card:hover {
+  transform: translateY(-5px);
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--border));
+  box-shadow: 0 14px 34px rgba(0,0,0,.18);
+}
+/* Fixed 4:5 cover area keeps every actress card aligned regardless of source-photo shape. */
+.actress-preview {
+  width: 100%; height: auto; min-height: 0; aspect-ratio: 4 / 5;
+  background: linear-gradient(135deg, #29233e, #171a27);
+  isolation: isolate;
+}
+.actress-preview img {
+  width: 100%; height: 100%; aspect-ratio: 4 / 5;
+  object-fit: cover; object-position: center 25%;
+  transition: transform .45s cubic-bezier(.2,.7,.2,1), filter .3s ease;
+}
+.actress-card:hover .actress-preview img { transform: scale(1.045); filter: saturate(1.05); }
+.actress-details { padding: 13px 14px 15px; }
+.actress-details h3 { font-size: .96rem; line-height: 1.35; }
+.actress-details p {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 9px; padding: 4px 9px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: .74rem; font-weight: 700;
+}
+.letter {
+  border: 1px solid transparent; border-radius: 999px;
+}
+.letter.active, .letter[aria-pressed="true"] {
+  background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 42%, transparent); color: var(--accent);
+}
+.gallery-toolbar-extra { gap: 9px; }
+.gallery-toolbar-extra select, .gallery-toolbar-extra button, .pager button,
+.back-button, .viewer-close, .viewer-nav {
+  border-color: var(--border); background: var(--surface); border-radius: 999px;
+}
+.pager button.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 4px 14px var(--accent-soft); }
+.photo-grid { gap: clamp(8px, 1.5vw, 15px); }
+.photo-tile { aspect-ratio: 4 / 5; border-radius: 15px; border-color: var(--border); background: var(--surface); }
+.photo-tile img { object-fit: cover; transition: transform .35s ease, filter .25s ease; }
+.photo-tile:hover img { transform: scale(1.045); filter: saturate(1.06); }
+.image-viewer { backdrop-filter: blur(12px); background: rgba(5,7,13,.94); }
+.viewer-close, .viewer-nav { border-color: rgba(255,255,255,.18); background: rgba(28,32,48,.92); color: white; }
+.pin-card, .upload-panel { box-shadow: 0 18px 55px rgba(0,0,0,.16); }
+:root[data-theme="light"] .site-header { background: rgba(255,255,255,.88); }
+:root[data-theme="light"] .actress-card { box-shadow: 0 5px 20px rgba(28,34,60,.06); }
+:root[data-theme="light"] .actress-card:hover { box-shadow: 0 14px 34px rgba(28,34,60,.12); }
+@media (max-width: 600px) {
+  .container { width: 92%; }
+  .welcome { padding-bottom: 30px; }
+  .actress-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+  .actress-card { border-radius: 14px; }
+  .actress-details { padding: 10px; }
+  .actress-details h3 { font-size: .84rem; }
+  .actress-details p { font-size: .68rem; padding: 4px 7px; }
+  .photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .gallery-toolbar-extra select { min-width: 0; }
+  .pager { gap: 6px; }
+  .pager button { padding: 8px 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
