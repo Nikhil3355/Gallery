@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const pinScreen = $("pinScreen"), pinForm = $("pinForm"), pinInput = $("pinInput"), pinError = $("pinError");
   const sortSelect = $("sortSelect"), actressPager = $("actressPager"), detail = $("actressDetail"), backToActresses = $("backToActresses");
   const refreshGalleryButton = $("refreshGalleryButton"), lastSynced = $("lastSynced"), lockGalleryButton = $("lockGalleryButton");
-  const photoGrid = $("photoGrid"), photoPager = $("photoPager"), detailMessage = $("detailMessage"), detailActressName = $("detailActressName"), detailActressCount = $("detailActressCount");
+  const photoGrid = $("photoGrid"), photoPager = $("photoPager"), detailMessage = $("detailMessage"), detailActressName = $("detailActressName"), detailActressCount = $("detailActressCount"), photoFilter = $("photoFilter");
   const viewer = $("imageViewer"), viewerImage = $("viewerImage"), viewerCaption = $("viewerCaption");
   const PAGE_SIZE = 24, PHOTO_PAGE_SIZE = 30, DEMO_PIN = "123456";
   let selectedLetter = "ALL", actresses = [], actressPage = 1, selectedActress = null, photoRecords = [], photoPage = 1, viewerIndex = 0;
@@ -27,8 +27,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const tabButtons = [...document.querySelectorAll(".main-tab[data-tab]")];
   const galleryPanels = [...document.querySelectorAll('[data-panel="gallery"]')], uploaderPanel = document.querySelector('[data-panel="uploader"]');
   tabButtons.forEach(button => button.addEventListener("click", () => {
-    const target = button.dataset.tab;
-    tabButtons.forEach(item => { const active = item === button; item.classList.toggle("active", active); item.setAttribute("aria-selected", String(active)); });
+    let target = button.dataset.tab;
+    if (target === "favorites") { target = "gallery"; if (sortSelect) sortSelect.value = "favorites"; actressPage = 1; renderActresses(); }
+    else if (target === "gallery" && sortSelect?.value === "favorites") sortSelect.value = "most";
+    tabButtons.forEach(item => { const active = item === button || (button.dataset.tab === "favorites" && item.dataset.tab === "favorites"); item.classList.toggle("active", active); item.setAttribute("aria-selected", String(active)); });
     galleryPanels.forEach(panel => { panel.hidden = target !== "gallery"; panel.classList.toggle("active", target === "gallery"); });
     if (uploaderPanel) { uploaderPanel.hidden = target !== "uploader"; uploaderPanel.classList.toggle("active", target === "uploader"); }
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -86,12 +88,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function filteredSortedActresses() {
     const query = searchInput.value.trim().toLocaleLowerCase();
-    const rows = actresses.filter(a => a.name.toLocaleLowerCase().includes(query) && (selectedLetter === "ALL" || a.name.toLocaleUpperCase().startsWith(selectedLetter)));
     const sort = sortSelect?.value || "most";
+    const rows = actresses.filter(a => a.name.toLocaleLowerCase().includes(query) && (selectedLetter === "ALL" || a.name.toLocaleUpperCase().startsWith(selectedLetter)) && (sort !== "favorites" || favoriteKeys.has(favoriteKey("actress", a.id))));
     rows.sort((a,b) => {
       if (sort === "most") return b.imageCount - a.imageCount || a.name.localeCompare(b.name);
       if (sort === "viewed") return (Number(viewCounts[viewedKey(b.id)]) || 0) - (Number(viewCounts[viewedKey(a.id)]) || 0) || a.name.localeCompare(b.name);
-      if (sort === "favorites") return Number(favoriteKeys.has(favoriteKey("actress", b.id))) - Number(favoriteKeys.has(favoriteKey("actress", a.id))) || a.name.localeCompare(b.name);
+      if (sort === "favorites") return a.name.localeCompare(b.name);
       if (sort === "least") return a.imageCount - b.imageCount || a.name.localeCompare(b.name);
       if (sort === "za") return b.name.localeCompare(a.name);
       if (sort === "recent") return String(b.dateAdded || "").localeCompare(String(a.dateAdded || "")) || a.name.localeCompare(b.name);
@@ -172,21 +174,23 @@ document.addEventListener("DOMContentLoaded", () => {
   backToActresses?.addEventListener("click", showActressList);
 
   function renderPhotos() {
-    photoGrid.replaceChildren(); const count = photoRecords.length, pageCount = Math.max(1, Math.ceil(count / PHOTO_PAGE_SIZE)); photoPage = Math.min(photoPage,pageCount);
+    photoGrid.replaceChildren();
+    const displayedRecords = photoFilter?.value === "favorites" ? photoRecords.filter(record => favoriteKeys.has(favoriteKey("photo", record.id))) : photoRecords;
+    const count = displayedRecords.length, pageCount = Math.max(1, Math.ceil(count / PHOTO_PAGE_SIZE)); photoPage = Math.min(photoPage,pageCount);
     detailMessage.hidden = count > 0; detailMessage.textContent = count ? "" : "No image records found for this actress.";
-    const rows = photoRecords.slice((photoPage-1)*PHOTO_PAGE_SIZE, photoPage*PHOTO_PAGE_SIZE);
+    const rows = displayedRecords.slice((photoPage-1)*PHOTO_PAGE_SIZE, photoPage*PHOTO_PAGE_SIZE);
     rows.forEach((record, localIndex) => {
       const globalIndex = (photoPage-1)*PHOTO_PAGE_SIZE + localIndex;
       const wrap = document.createElement("div"); wrap.className = "photo-card-wrap";
       const tile = document.createElement("button"); tile.type = "button"; tile.className = "photo-tile"; tile.setAttribute("aria-label", `Open photo ${globalIndex+1}`);
       const placeholder = document.createElement("span"); placeholder.className = "photo-placeholder"; placeholder.textContent = "Loading encrypted photo…"; tile.appendChild(placeholder);
-      tile.addEventListener("click", () => openViewer(globalIndex));
+      tile.addEventListener("click", () => openViewer(photoRecords.indexOf(record)));
       const photoFav = document.createElement("button"); photoFav.type = "button"; photoFav.className = "favorite-toggle photo-favorite-toggle";
       const isFav = favoriteKeys.has(favoriteKey("photo", record.id)); photoFav.textContent = isFav ? "★" : "☆"; photoFav.setAttribute("aria-pressed", String(isFav)); photoFav.setAttribute("aria-label", isFav ? "Remove photo from favourites" : "Add photo to favourites");
       photoFav.addEventListener("click", e => { e.stopPropagation(); toggleFavorite("photo", record.id, `${selectedActress?.name || "Photo"} · ${globalIndex+1}`, photoFav); });
       wrap.append(tile, photoFav); photoGrid.appendChild(wrap);
       if ("IntersectionObserver" in window) photoObserver.observe(tile); else loadPhotoTile(tile, record);
-      tile.dataset.recordIndex = String(globalIndex);
+      tile.dataset.recordIndex = String(photoRecords.indexOf(record));
     });
     createPager(photoPager, photoPage, pageCount, p => { photoPage=p; renderPhotos(); window.scrollTo({top:0,behavior:"smooth"}); });
   }
@@ -212,7 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
   viewer?.addEventListener("click",e=>{ if(e.target===viewer) closeViewer(); }); document.addEventListener("keydown",e=>{ if(viewer?.hidden) return; if(e.key==="Escape") closeViewer(); if(e.key==="ArrowLeft"&&viewerIndex>0){viewerIndex--;updateViewer();} if(e.key==="ArrowRight"&&viewerIndex<photoRecords.length-1){viewerIndex++;updateViewer();} });
 
   alphabet.addEventListener("click", event => { const button = event.target.closest("button[data-letter]"); if (!button) return; selectedLetter=button.dataset.letter; actressPage=1; alphabet.querySelectorAll("button[data-letter]").forEach(item=>{const active=item===button;item.classList.toggle("active",active);item.setAttribute("aria-pressed",String(active));}); renderActresses(); });
-  searchInput.addEventListener("input",()=>{actressPage=1;renderActresses();}); sortSelect?.addEventListener("change",()=>{actressPage=1;renderActresses();});
+  searchInput.addEventListener("input",()=>{actressPage=1;renderActresses();}); sortSelect?.addEventListener("change",()=>{actressPage=1;renderActresses();}); photoFilter?.addEventListener("change",()=>{photoPage=1;renderPhotos();});
 
   toggleNewActress?.addEventListener("click",()=>{ if(!newActressFields)return; newActressFields.hidden=!newActressFields.hidden; toggleNewActress.textContent=newActressFields.hidden?"Add new actress":"Use existing actress"; if(uploadActress)uploadActress.required=newActressFields.hidden; if(newActressName)newActressName.required=!newActressFields.hidden; if(!newActressFields.hidden)newActressName?.focus(); });
   encryptedFiles?.addEventListener("change",()=>{const files=[...encryptedFiles.files];if(files.some(f=>!f.name.toLowerCase().endsWith(".enc"))){setUploadMessage("Please select only .enc encrypted files.","error");encryptedFiles.value="";return;}setUploadMessage(files.length?`${files.length} encrypted file(s) selected.`:"");});
