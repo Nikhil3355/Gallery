@@ -228,6 +228,8 @@ const GalleryAPI = (() => {
     const aId = colIndex(actressTable.headers, ["ActressID"]);
     const aName = colIndex(actressTable.headers, ["ActressName", "Name"]);
     const aDate = colIndex(actressTable.headers, ["DateAdded"]);
+    const aInstagramUsername = colIndex(actressTable.headers, ["InstagramUsername", "InstagramHandle", "Instagram"]);
+    const aInstagramURL = colIndex(actressTable.headers, ["InstagramURL", "InstagramLink", "InstagramProfileURL"]);
     const iActressId = colIndex(imageTable.headers, ["ActressID"]);
     if (aName < 0) throw new Error("ActressName column was not found in the Actresses sheet.");
     const counts = new Map();
@@ -238,7 +240,23 @@ const GalleryAPI = (() => {
     return actressTable.rows.map(row => {
       const name = String(row[aName] || "").trim();
       const id = (aId >= 0 ? String(row[aId] || "") : "") || name;
-      return { id, name, imageCount: counts.get(id) || 0, dateAdded: aDate >= 0 ? String(row[aDate] || "") : "" };
+      const instagramUsername = aInstagramUsername >= 0 ? String(row[aInstagramUsername] || "").trim().replace(/^@/, "") : "";
+      const instagramRawUrl = aInstagramURL >= 0 ? String(row[aInstagramURL] || "").trim() : "";
+      let instagramURL = "";
+      if (instagramRawUrl) {
+        try {
+          const candidate = new URL(/^https?:\/\//i.test(instagramRawUrl) ? instagramRawUrl : `https://${instagramRawUrl}`);
+          if (candidate.hostname === "instagram.com" || candidate.hostname.endsWith(".instagram.com")) instagramURL = `https://www.instagram.com/${candidate.pathname.split("/").filter(Boolean)[0] || ""}/`;
+        } catch (_) {}
+      }
+      if (!instagramURL && instagramUsername && /^[A-Za-z0-9._]{1,30}$/.test(instagramUsername)) {
+        instagramURL = `https://www.instagram.com/${encodeURIComponent(instagramUsername)}/`;
+      }
+      return {
+        id, name, imageCount: counts.get(id) || 0,
+        dateAdded: aDate >= 0 ? String(row[aDate] || "") : "",
+        instagramUsername, instagramURL
+      };
     }).filter(row => row.name).sort((a, b) => a.name.localeCompare(b.name));
   }
 

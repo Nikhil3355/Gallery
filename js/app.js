@@ -122,7 +122,25 @@ document.addEventListener("DOMContentLoaded", () => {
       const fav = document.createElement("button"); fav.type = "button"; fav.className = "favorite-toggle"; fav.textContent = favoriteKeys.has(favoriteKey("actress", a.id)) ? "★" : "☆"; fav.setAttribute("aria-label", favoriteKeys.has(favoriteKey("actress", a.id)) ? `Remove ${a.name} from favourites` : `Add ${a.name} to favourites`); fav.setAttribute("aria-pressed", String(favoriteKeys.has(favoriteKey("actress", a.id)))); fav.addEventListener("click", async e => { e.stopPropagation(); await toggleFavorite("actress", a.id, a.name, fav); }); card.appendChild(fav);
       const details = document.createElement("div"); details.className = "actress-details";
       const name = document.createElement("h3"); name.textContent = a.name;
-      const count = document.createElement("p"); count.textContent = `${Number(a.imageCount)||0} images`; details.append(name,count); card.append(preview,details);
+      const count = document.createElement("p"); count.textContent = `${Number(a.imageCount)||0} images`; details.append(name,count);
+      if (a.instagramURL) {
+        const instagram = document.createElement("a");
+        instagram.className = "actress-instagram-link";
+        instagram.href = a.instagramURL;
+        instagram.target = "_blank";
+        instagram.rel = "noopener noreferrer";
+        instagram.setAttribute("aria-label", `Open ${a.name}'s Instagram profile in a new tab`);
+        instagram.addEventListener("click", event => event.stopPropagation());
+        const icon = document.createElement("span");
+        icon.className = "instagram-glyph";
+        icon.setAttribute("aria-hidden", "true");
+        icon.textContent = "◎";
+        const label = document.createElement("span");
+        label.textContent = a.instagramUsername ? `@${a.instagramUsername}` : "Instagram profile";
+        instagram.append(icon, label);
+        details.appendChild(instagram);
+      }
+      card.append(preview,details);
       const open = () => openActress(a); card.addEventListener("click", open); card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } }); actressGrid.appendChild(card);
       // Covers load only when the card enters view. Requires an authenticated session and the password.
       card.dataset.actressId = a.id;
@@ -263,7 +281,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (refreshGalleryButton) refreshGalleryButton.disabled = true;
     try {
       const rows = await window.GalleryAPI.getCatalogue();
-      actresses = rows.map(row => ({id:row.id,name:row.name,imageCount:row.imageCount||0,dateAdded:row.dateAdded||""}));
+      actresses = rows.map(row => ({
+        id: row.id, name: row.name, imageCount: row.imageCount || 0,
+        dateAdded: row.dateAdded || "", instagramUsername: row.instagramUsername || "",
+        instagramURL: row.instagramURL || ""
+      }));
       try { await loadFavorites(); } catch (favoriteError) { console.warn("Favorites could not be loaded:", favoriteError); }
       actressPage=1; renderActresses();
       if (lastSynced) lastSynced.textContent = `Last synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}`;
