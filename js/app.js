@@ -10,11 +10,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const uploadSubmit = $("uploadSubmit"), uploadStatus = $("uploadStatus"), uploadPercent = $("uploadPercent"), uploadProgress = $("uploadProgress");
   const pinScreen = $("pinScreen"), pinForm = $("pinForm"), pinInput = $("pinInput"), pinError = $("pinError");
   const sortSelect = $("sortSelect"), actressPager = $("actressPager"), detail = $("actressDetail"), backToActresses = $("backToActresses");
+  const refreshGalleryButton = $("refreshGalleryButton"), lastSynced = $("lastSynced"), lockGalleryButton = $("lockGalleryButton");
   const photoGrid = $("photoGrid"), photoPager = $("photoPager"), detailMessage = $("detailMessage"), detailActressName = $("detailActressName"), detailActressCount = $("detailActressCount");
   const viewer = $("imageViewer"), viewerImage = $("viewerImage"), viewerCaption = $("viewerCaption");
   const PAGE_SIZE = 24, PHOTO_PAGE_SIZE = 30, DEMO_PIN = "123456";
   let selectedLetter = "ALL", actresses = [], actressPage = 1, selectedActress = null, photoRecords = [], photoPage = 1, viewerIndex = 0;
   const imageUrlCache = new Map(), coverUrlCache = new Map();
+  let favoriteKeys = new Set();
+  let favoritesLoaded = false;
+  let viewCounts = {};
+  try { viewCounts = JSON.parse(localStorage.getItem("gallery-view-counts") || "{}"); } catch (_) { viewCounts = {}; }
+  const viewedKey = id => `actress:${String(id)}`;
+  const favoriteKey = (type, id) => `${type}:${String(id)}`;
+  function markViewed(key) { viewCounts[key] = (Number(viewCounts[key]) || 0) + 1; try { localStorage.setItem("gallery-view-counts", JSON.stringify(viewCounts)); } catch (_) {} }
 
   const tabButtons = [...document.querySelectorAll(".main-tab[data-tab]")];
   const galleryPanels = [...document.querySelectorAll('[data-panel="gallery"]')], uploaderPanel = document.querySelector('[data-panel="uploader"]');
@@ -82,6 +90,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const sort = sortSelect?.value || "most";
     rows.sort((a,b) => {
       if (sort === "most") return b.imageCount - a.imageCount || a.name.localeCompare(b.name);
+      if (sort === "viewed") return (Number(viewCounts[viewedKey(b.id)]) || 0) - (Number(viewCounts[viewedKey(a.id)]) || 0) || a.name.localeCompare(b.name);
+      if (sort === "favorites") return Number(favoriteKeys.has(favoriteKey("actress", b.id))) - Number(favoriteKeys.has(favoriteKey("actress", a.id))) || a.name.localeCompare(b.name);
       if (sort === "least") return a.imageCount - b.imageCount || a.name.localeCompare(b.name);
       if (sort === "za") return b.name.localeCompare(a.name);
       if (sort === "recent") return String(b.dateAdded || "").localeCompare(String(a.dateAdded || "")) || a.name.localeCompare(b.name);
@@ -100,13 +110,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!pageRows.length) {
       const empty = document.createElement("div"); empty.className = "empty-state";
       const h = document.createElement("h3"); h.textContent = actresses.length ? "No matching actresses" : "Sign in to load your gallery";
-      const p = document.createElement("p"); p.textContent = actresses.length ? "Try another name or letter." : "Use Sign in with Google to load your private catalogue."; empty.append(h,p); actressGrid.appendChild(empty);
+      const p = document.createElement("p"); p.textContent = actresses.length ? "Try another name or letter." : "Use Sign in with Google to load your collection."; empty.append(h,p); actressGrid.appendChild(empty);
     }
     pageRows.forEach(a => {
       const card = document.createElement("article"); card.className = "actress-card"; card.tabIndex = 0; card.setAttribute("role", "button"); card.setAttribute("aria-label", `Open ${a.name}, ${a.imageCount} images`);
       const preview = document.createElement("div"); preview.className = "actress-preview";
       const initials = a.name.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("");
       const placeholder = document.createElement("span"); placeholder.className = "cover-placeholder"; placeholder.textContent = initials; preview.appendChild(placeholder);
+      const fav = document.createElement("button"); fav.type = "button"; fav.className = "favorite-toggle"; fav.textContent = favoriteKeys.has(favoriteKey("actress", a.id)) ? "★" : "☆"; fav.setAttribute("aria-label", favoriteKeys.has(favoriteKey("actress", a.id)) ? `Remove ${a.name} from favourites` : `Add ${a.name} to favourites`); fav.setAttribute("aria-pressed", String(favoriteKeys.has(favoriteKey("actress", a.id)))); fav.addEventListener("click", async e => { e.stopPropagation(); await toggleFavorite("actress", a.id, a.name, fav); }); card.appendChild(fav);
       const details = document.createElement("div"); details.className = "actress-details";
       const name = document.createElement("h3"); name.textContent = a.name;
       const count = document.createElement("p"); count.textContent = `${Number(a.imageCount)||0} images`; details.append(name,count); card.append(preview,details);
@@ -139,6 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function openActress(actress) {
+    markViewed(viewedKey(actress.id));
     if (!window.GalleryAPI?.isSignedIn()) { alert("Please sign in with Google first."); return; }
     if (!windowGalleryPassword) {
       const pw = window.prompt("Enter your photo-encryption password. It will be used in this tab only and will not be saved.");
@@ -165,11 +177,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const rows = photoRecords.slice((photoPage-1)*PHOTO_PAGE_SIZE, photoPage*PHOTO_PAGE_SIZE);
     rows.forEach((record, localIndex) => {
       const globalIndex = (photoPage-1)*PHOTO_PAGE_SIZE + localIndex;
+      const wrap = document.createElement("div"); wrap.className = "photo-card-wrap";
       const tile = document.createElement("button"); tile.type = "button"; tile.className = "photo-tile"; tile.setAttribute("aria-label", `Open photo ${globalIndex+1}`);
-      const placeholder = document.createElement("span"); placeholder.className = "photo-placeholder"; placeholder.textContent = "Loading encrypted photo…"; tile.appendChild(placeholder); photoGrid.appendChild(tile);
+      const placeholder = document.createElement("span"); placeholder.className = "photo-placeholder"; placeholder.textContent = "Loading encrypted photo…"; tile.appendChild(placeholder);
       tile.addEventListener("click", () => openViewer(globalIndex));
-      if ("IntersectionObserver" in window) photoObserver.observe(tile);
-      else loadPhotoTile(tile, record);
+      const photoFav = document.createElement("button"); photoFav.type = "button"; photoFav.className = "favorite-toggle photo-favorite-toggle";
+      const isFav = favoriteKeys.has(favoriteKey("photo", record.id)); photoFav.textContent = isFav ? "★" : "☆"; photoFav.setAttribute("aria-pressed", String(isFav)); photoFav.setAttribute("aria-label", isFav ? "Remove photo from favourites" : "Add photo to favourites");
+      photoFav.addEventListener("click", e => { e.stopPropagation(); toggleFavorite("photo", record.id, `${selectedActress?.name || "Photo"} · ${globalIndex+1}`, photoFav); });
+      wrap.append(tile, photoFav); photoGrid.appendChild(wrap);
+      if ("IntersectionObserver" in window) photoObserver.observe(tile); else loadPhotoTile(tile, record);
       tile.dataset.recordIndex = String(globalIndex);
     });
     createPager(photoPager, photoPage, pageCount, p => { photoPage=p; renderPhotos(); window.scrollTo({top:0,behavior:"smooth"}); });
@@ -182,7 +198,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function openViewer(index) {
-    viewerIndex = index; await updateViewer(); viewer.hidden = false; document.body.style.overflow = "hidden";
+    viewerIndex = index;
+    const currentRecord = photoRecords[index]; if (currentRecord) markViewed(`photo:${currentRecord.id}`); await updateViewer(); viewer.hidden = false; document.body.style.overflow = "hidden";
   }
   async function updateViewer() {
     const record = photoRecords[viewerIndex]; if (!record) return;
@@ -215,10 +232,55 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   if(pinInput&&pinError)pinInput.addEventListener("input",()=>{pinInput.value=pinInput.value.replace(/\D/g,"").slice(0,6);pinError.textContent="";});
-  if(pinForm&&pinInput&&pinError&&pinScreen)pinForm.addEventListener("submit",event=>{event.preventDefault();if(!/^\d{6}$/.test(pinInput.value)){pinError.textContent="Please enter all 6 digits.";return;}if(pinInput.value!==DEMO_PIN){pinError.textContent="Incorrect PIN. Please try again.";pinInput.value="";pinInput.focus();return;}pinScreen.hidden=true;document.body.style.overflow="";pinInput.value="";});
+  if(pinForm&&pinInput&&pinError&&pinScreen)pinForm.addEventListener("submit",event=>{event.preventDefault();if(!/^\d{6}$/.test(pinInput.value)){pinError.textContent="Please enter all 6 digits.";return;}if(pinInput.value!==DEMO_PIN){pinError.textContent="Incorrect PIN. Please try again.";pinInput.value="";pinInput.focus();return;}pinScreen.hidden=true;document.body.style.overflow="";pinInput.value="";try{sessionStorage.setItem("gallery-pin-unlocked","yes");}catch(_){};});
 
-  async function refreshCatalogue() { const rows=await window.GalleryAPI.getCatalogue(); actresses=rows.map(row=>({id:row.id,name:row.name,imageCount:row.imageCount||0,dateAdded:row.dateAdded||""})); actressPage=1;renderActresses(); }
-  googleSignInButton?.addEventListener("click",async()=>{googleSignInButton.disabled=true;try{if(connectionStatus)connectionStatus.textContent="Connecting…";setUploadMessage("Opening Google sign-in…");await window.GalleryAPI.signIn();if(connectionStatus)connectionStatus.textContent="Google connected";googleSignInButton.textContent="Google connected ✓";await refreshCatalogue();if(!windowGalleryPassword){const pw=window.prompt("Enter your photo-encryption password to show card covers. It stays in this tab only and is not saved.");if(pw&&pw.length>=12)windowGalleryPassword=pw;else if(pw!==null)setUploadMessage("Google connected. Enter the encryption password when you open an actress to view photos.");}renderActresses();setUploadMessage("Google connected. Your catalogue is loaded.","success");}catch(error){console.error("Google connection failed:",error);if(connectionStatus)connectionStatus.textContent="Connection failed";setUploadMessage(error.message||"Google sign-in failed.","error");}finally{googleSignInButton.disabled=false;}});
+  async function toggleFavorite(type, id, name, button) {
+    if (!window.GalleryAPI?.isSignedIn()) { setUploadMessage("Sign in with Google to sync favourites across devices.", "error"); return; }
+    button.disabled = true;
+    try {
+      const currentlyFavorite = favoriteKeys.has(favoriteKey(type, id));
+      const items = await window.GalleryAPI.setFavorite(type, id, name, !currentlyFavorite);
+      favoriteKeys = new Set(items.map(item => favoriteKey(item.type, item.id))); favoritesLoaded = true;
+      button.textContent = currentlyFavorite ? "☆" : "★"; button.setAttribute("aria-pressed", String(!currentlyFavorite));
+      button.setAttribute("aria-label", `${currentlyFavorite ? "Remove" : "Add"} ${type === "actress" ? name : "photo"} ${currentlyFavorite ? "from" : "to"} favourites`);
+      if (sortSelect?.value === "favorites") renderActresses();
+    } catch (error) { setUploadMessage(`Could not update favourites: ${error.message}`, "error"); }
+    finally { button.disabled = false; }
+  }
+
+  async function loadFavorites() {
+    if (!window.GalleryAPI?.isSignedIn()) return;
+    const items = await window.GalleryAPI.getFavorites();
+    favoriteKeys = new Set(items.map(item => favoriteKey(item.type, item.id))); favoritesLoaded = true;
+  }
+
+  async function refreshCatalogue(showMessage = true) {
+    if (!window.GalleryAPI?.isSignedIn()) { setUploadMessage("Sign in with Google before refreshing the gallery.", "error"); return; }
+    if (refreshGalleryButton) refreshGalleryButton.disabled = true;
+    try {
+      const rows = await window.GalleryAPI.getCatalogue();
+      actresses = rows.map(row => ({id:row.id,name:row.name,imageCount:row.imageCount||0,dateAdded:row.dateAdded||""}));
+      try { await loadFavorites(); } catch (favoriteError) { console.warn("Favorites could not be loaded:", favoriteError); }
+      actressPage=1; renderActresses();
+      if (lastSynced) lastSynced.textContent = `Last synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}`;
+      if (showMessage) setUploadMessage("Gallery refreshed. Existing images were not re-uploaded.", "success");
+    } finally { if (refreshGalleryButton) refreshGalleryButton.disabled = false; }
+  }
+  refreshGalleryButton?.addEventListener("click", () => refreshCatalogue(true).catch(error => setUploadMessage(error.message, "error")));
+  lockGalleryButton?.addEventListener("click", () => lockGallery());
+
+  function lockGallery() {
+    try { sessionStorage.removeItem("gallery-pin-unlocked"); } catch (_) {}
+    pinScreen.hidden = false; document.body.style.overflow = "hidden"; pinInput?.focus();
+    closeViewer();
+  }
+  // sessionStorage survives ordinary refreshes but is cleared when the tab's session ends.
+  try {
+    if (sessionStorage.getItem("gallery-pin-unlocked") === "yes") { pinScreen.hidden = true; document.body.style.overflow = ""; }
+    else { pinScreen.hidden = false; document.body.style.overflow = "hidden"; }
+  } catch (_) { pinScreen.hidden = false; document.body.style.overflow = "hidden"; }
+
+  googleSignInButton?.addEventListener("click",async()=>{googleSignInButton.disabled=true;try{if(connectionStatus)connectionStatus.textContent="Connecting…";setUploadMessage("Opening Google sign-in…");await window.GalleryAPI.signIn();if(connectionStatus)connectionStatus.textContent="Google connected";googleSignInButton.textContent="Google connected ✓";await refreshCatalogue(false);if(!windowGalleryPassword){const pw=window.prompt("Enter your photo-encryption password to show card covers. It stays in this tab only and is not saved.");if(pw&&pw.length>=12)windowGalleryPassword=pw;else if(pw!==null)setUploadMessage("Google connected. Enter the encryption password when you open an actress to view photos.");}renderActresses();setUploadMessage("Google connected. Your catalogue is loaded.","success");}catch(error){console.error("Google connection failed:",error);if(connectionStatus)connectionStatus.textContent="Connection failed";setUploadMessage(error.message||"Google sign-in failed.","error");}finally{googleSignInButton.disabled=false;}});
 
   if(connectionStatus)connectionStatus.textContent="Sign in required";
   renderActresses();

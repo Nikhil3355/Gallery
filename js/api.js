@@ -13,6 +13,7 @@ const GalleryAPI = (() => {
     imagesFolderId: "1jP9PVyHyd2B6KUpmRefMcOy1C1FEg7Gz",
     actressesSheet: "Actresses",
     imagesSheet: "Images",
+    favoritesSheet: "Favorites",
     scopes: "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets"
   };
 
@@ -112,12 +113,15 @@ const GalleryAPI = (() => {
     const values = result.values || [];
     const known = sheetName === CONFIG.actressesSheet
       ? ["actressid", "actressname", "sortname", "dateadded"]
-      : ["imageid", "actressid", "drivefileid", "category", "filesize", "encryptionversion", "dateadded"];
+      : sheetName === CONFIG.favoritesSheet
+        ? ["itemtype", "itemid", "itemname", "dateadded"]
+        : ["imageid", "actressid", "drivefileid", "category", "filesize", "encryptionversion", "dateadded"];
     let headerIndex = values.findIndex(row => {
       const normalized = row.map(normalizeHeader);
       return known.some(key => normalized.includes(key)) &&
         (sheetName !== CONFIG.actressesSheet || normalized.includes("actressname")) &&
-        (sheetName !== CONFIG.imagesSheet || normalized.includes("drivefileid"));
+        (sheetName !== CONFIG.imagesSheet || normalized.includes("drivefileid")) &&
+        (sheetName !== CONFIG.favoritesSheet || normalized.includes("itemtype"));
     });
     if (headerIndex < 0) {
       throw new Error(`Could not find the expected column headers in the '${sheetName}' sheet. Please check its first 10 rows; no data was written.`);
@@ -158,6 +162,63 @@ const GalleryAPI = (() => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ values: [row] })
     });
+  }
+
+
+  async function ensureFavoritesSheet() {
+    const metaResponse = await googleFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetId}?fields=sheets.properties(sheetId,title)`);
+    const meta = await metaResponse.json();
+    const sheets = meta.sheets || [];
+    const found = sheets.find(s => s.properties?.title === CONFIG.favoritesSheet);
+    if (!found) {
+      await googleFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetId}:batchUpdate`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requests: [{ addSheet: { properties: { title: CONFIG.favoritesSheet } } }] })
+      });
+    }
+    const range = encodeURIComponent(`${CONFIG.favoritesSheet}!A1:D1`);
+    const check = await googleFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetId}/values/${range}`);
+    const values = (await check.json()).values || [];
+    if (!values.length || !values[0].some(Boolean)) {
+      await googleFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetId}/values/${range}?valueInputOption=RAW`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ values: [["ItemType", "ItemID", "ItemName", "DateAdded"]] })
+      });
+    }
+  }
+
+  async function getFavorites() {
+    await ensureFavoritesSheet();
+    const table = await getSheetTable(CONFIG.favoritesSheet);
+    const typeIndex = colIndex(table.headers, ["ItemType"]);
+    const idIndex = colIndex(table.headers, ["ItemID"]);
+    const nameIndex = colIndex(table.headers, ["ItemName"]);
+    if (typeIndex < 0 || idIndex < 0) throw new Error("Favorites sheet headers are invalid.");
+    return table.rows.map(row => ({ type: String(row[typeIndex] || ""), id: String(row[idIndex] || ""), name: nameIndex >= 0 ? String(row[nameIndex] || "") : "" }))
+      .filter(item => item.type && item.id);
+  }
+
+  async function setFavorite(type, id, name, isFavorite) {
+    await ensureFavoritesSheet();
+    const table = await getSheetTable(CONFIG.favoritesSheet);
+    const typeIndex = colIndex(table.headers, ["ItemType"]), idIndex = colIndex(table.headers, ["ItemID"]);
+    const matchIndex = table.rows.findIndex(row => String(row[typeIndex] || "") === String(type) && String(row[idIndex] || "") === String(id));
+    if (isFavorite && matchIndex < 0) {
+      await appendRow(CONFIG.favoritesSheet, table.headers, { itemtype: type, itemid: String(id), itemname: String(name || ""), dateadded: dateStamp() });
+    } else if (!isFavorite && matchIndex >= 0) {
+      // Delete only the exact matching favourite row; leave every other sheet and record untouched.
+      const spreadsheetResponse = await googleFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetId}?fields=sheets.properties(sheetId,title)`);
+      const spreadsheet = await spreadsheetResponse.json();
+      const sheet = (spreadsheet.sheets || []).find(s => s.properties?.title === CONFIG.favoritesSheet);
+      if (sheet) {
+        const startRowIndex = table.headerRow + matchIndex;
+        await googleFetch(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetId}:batchUpdate`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId: sheet.properties.sheetId, dimension: "ROWS", startIndex: startRowIndex, endIndex: startRowIndex + 1 } } }] })
+        });
+      }
+    }
+    return getFavorites();
   }
 
   async function getCatalogue() {
@@ -300,7 +361,7 @@ const GalleryAPI = (() => {
     return completed;
   }
 
-  return { config: CONFIG, signIn, signOut, getCatalogue, getImagesForActress, getEncryptedFile, uploadEncryptedFiles, isSignedIn: () => authReady && !!accessToken && Date.now() < tokenExpiresAt };
+  return { config: CONFIG, signIn, signOut, getCatalogue, getImagesForActress, getEncryptedFile, uploadEncryptedFiles, getFavorites, setFavorite, isSignedIn: () => authReady && !!accessToken && Date.now() < tokenExpiresAt };
 })();
 
 window.GalleryAPI = GalleryAPI;

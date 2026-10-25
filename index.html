@@ -31,6 +31,7 @@
             <span class="status" id="connectionStatus">Sign in required</span>
             <button type="button" id="googleSignInButton" class="theme-toggle">Sign in with Google</button>
             <button type="button" id="themeToggle" class="theme-toggle" aria-label="Switch to light mode" title="Switch theme">☀️ Light</button>
+            <button type="button" id="lockGalleryButton" class="theme-toggle">Lock Gallery</button>
         </div>
     </header>
 
@@ -43,7 +44,7 @@
       <section id="galleryTab" class="tab-panel active" data-panel="gallery">
         <section class="welcome">
             <p class="eyebrow">YOUR PERSONAL COLLECTION</p>
-            <h1>Your gallery.<br><span>Your private space.</span></h1>
+            <h1>Your gallery.<br><span>Your collection.</span></h1>
             <p class="intro">
                 A personal collection, organised alphabetically
                 and designed for easy browsing.
@@ -103,11 +104,14 @@
             <select id="sortSelect" aria-label="Sort actresses">
                 <option value="most">Most Images</option>
                 <option value="least">Least Images</option>
+                <option value="viewed">Most Viewed</option>
+                <option value="favorites">Favourite Actresses</option>
                 <option value="az">A–Z</option>
                 <option value="za">Z–A</option>
                 <option value="recent">Recently Added</option>
             </select>
-            <span class="pager-info" id="sortHint">24 actress cards per page</span>
+            <button type="button" id="refreshGalleryButton" class="secondary-button">↻ Refresh Gallery</button>
+            <span class="pager-info" id="lastSynced">Not synced yet</span>
         </div>
         <section id="actressDetail" hidden>
             <div class="detail-heading">
@@ -161,7 +165,7 @@
                 <div class="empty-state">
                     <span class="empty-icon" aria-hidden="true">◇</span>
                     <h3>Your collection will appear here</h3>
-                    <p>The gallery will populate after we connect your private catalogue.</p>
+                    <p>Your gallery will appear here after you connect Google.</p>
                 </div>
             </div>
             <nav id="actressPager" class="pager" aria-label="Actress pages"></nav>

@@ -531,3 +531,29 @@ button:active:not(:disabled) { transform: translateY(0) scale(.985); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+
+/* Gallery refresh and favourites */
+.favorite-toggle {
+  position: absolute; z-index: 3; top: 10px; right: 10px; width: 38px; height: 38px;
+  border: 1px solid rgba(255,255,255,.22); border-radius: 50%; background: rgba(22,24,44,.82);
+  color: #ffd166; font-size: 1.35rem; line-height: 1; cursor: pointer; backdrop-filter: blur(8px);
+  box-shadow: 0 5px 18px rgba(0,0,0,.18); transition: transform .18s ease, background .18s ease;
+}
+.favorite-toggle:hover { transform: scale(1.08); background: rgba(90,72,150,.94); }
+.actress-card { position: relative; }
+.photo-card-wrap { position: relative; min-width: 0; aspect-ratio: 4 / 5; }
+.photo-card-wrap .photo-tile { width: 100%; height: 100%; }
+.photo-favorite-toggle { top: 8px; right: 8px; }
+#refreshGalleryButton { white-space: nowrap; }
+#lastSynced { align-self: center; }
+@media (max-width: 640px) {
+  .header-actions { flex-wrap: wrap; justify-content: flex-end; gap: .45rem; }
+  .header-actions .theme-toggle { font-size: .78rem; padding: .55rem .7rem; }
+  .gallery-toolbar-extra { flex-wrap: wrap; gap: .55rem; }
+  #refreshGalleryButton { flex: 1 1 auto; }
+  #lastSynced { flex: 1 1 100%; }
+  .photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+  .photo-tile { aspect-ratio: 4 / 5; }
+  .favorite-toggle { width: 34px; height: 34px; }
+}
